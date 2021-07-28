@@ -10,7 +10,6 @@ import (
 )
 
 func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Request) {
-
 	var input struct {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
@@ -45,13 +44,18 @@ func (app *application) registerUserHandler(w http.ResponseWriter, r *http.Reque
 	err = app.models.Users.Insert(user)
 	if err != nil {
 		switch {
-
 		case errors.Is(err, data.ErrDuplicateEmail):
 			v.AddError("email", "a user with this email address already exists")
 			app.failedValidationResponse(w, r, v.Errors)
 		default:
 			app.serverErrorResponse(w, r, err)
 		}
+		return
+	}
+
+	err = app.models.Permissions.AddForUser(user.ID, "movies:read")
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
